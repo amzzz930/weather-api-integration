@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: weather_data_sources
+    database: staging_db
+    schema: public
+    tables:
+      - name: weather_data
+      - name: city_country_map
+#      - name: country_to_continent_map

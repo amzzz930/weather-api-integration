@@ -1,0 +1,11 @@
+default:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: postgres
+      user: admin_user
+      password: admin_password
+      port: 5432
+      dbname: staging_db
+      schema: public
