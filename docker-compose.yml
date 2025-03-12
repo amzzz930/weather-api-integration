@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: admin_password
+      POSTGRES_DB: staging_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  airflow-webserver:
+    # Build from our custom Dockerfile that installs requirements.txt
+    build:
+      context: .
+      dockerfile: Dockerfile-airflow-webserver
+    container_name: airflow_webserver
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://admin_user:admin_password@postgres:5432/staging_db
+      PYTHONPATH: "/opt/airflow"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "my_shared_secret_key"
+      DATABASE_URL: "postgresql://admin_user:admin_password@postgres:5432/staging_db"
+    ports:
+      - "8080:8080"
+    volumes:
+#      - ./dags:/opt/airflow/dags  # Mounting dags
+      - ./helpers:/opt/airflow/helpers  # Mounting helpers
+#      - ./utils:/opt/airflow/utils  # Mounting utils
+      - ./dbt:/opt/airflow/dbt  # Mounting dbt
+
+    entrypoint: ["/bin/bash", "-c", "airflow db init && airflow webserver && airflow users create --username admin --firstname Admin --lastname User --email admin@example.com --role Admin --password admin"]
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.3
+    container_name: airflow_scheduler
+    restart: always
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://admin_user:admin_password@postgres:5432/staging_db
+      PYTHONPATH: "/opt/airflow"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "my_shared_secret_key"
+      DATABASE_URL: "postgresql://admin_user:admin_password@postgres:5432/staging_db"
+    volumes:
+#      - ./dags:/opt/airflow/dags
+      - ./helpers:/opt/airflow/helpers
+#      - ./utils:/opt/airflow/utils
+      - ./dbt:/opt/airflow/dbt
+
+    entrypoint: ["/bin/bash", "-c", "airflow scheduler"]
+
+volumes:
+  postgres_data:
