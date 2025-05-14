@@ -1,0 +1,28 @@
+minikube start
+
+minikube mount /Users/aminchoudhury/Desktop/work/weather-api-integration:/data
+
+eval $(minikube docker-env)
+
+docker build -t airflow-webserver:local -f Dockerfile-airflow-webserver .
+
+kubectl create namespace weather-api
+
+kubectl apply -f postgres.yaml
+kubectl apply -f airflow-configmap.yaml
+kubectl apply -f airflow-webserver.yaml
+kubectl apply -f airflow-scheduler.yaml
+
+
+kubectl port-forward svc/airflow-webserver 8080:8080
+kubectl port-forward svc/postgres 5432:5432
+
+dbt_project/
+├── models/
+│   ├── staging/                 # Raw sources cleaned and renamed
+│   │   └── stg_*.sql
+│   ├── intermediate/           # Optional: joins, transformations not ready for final consumption
+│   │   └── int_*.sql
+│   └── marts/                  # Final models used for BI or end users
+│       ├── core/               # Core business entities (e.g., customers, orders)
+│       └── reporting/          # Tables for dashboards or reporting tools

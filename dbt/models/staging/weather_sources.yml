@@ -6,5 +6,5 @@ sources:
     schema: public
     tables:
       - name: weather_data
-      - name: city_country_map
+      - name: city_country_continent
 #      - name: country_to_continent_map

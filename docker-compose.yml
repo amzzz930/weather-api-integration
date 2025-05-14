@@ -29,9 +29,9 @@ services:
     ports:
       - "8080:8080"
     volumes:
-#      - ./dags:/opt/airflow/dags  # Mounting dags
+      - ./dags:/opt/airflow/dags  # Mounting dags
       - ./helpers:/opt/airflow/helpers  # Mounting helpers
-#      - ./utils:/opt/airflow/utils  # Mounting utils
+      - ./utils:/opt/airflow/utils  # Mounting utils
       - ./dbt:/opt/airflow/dbt  # Mounting dbt
 
     entrypoint: ["/bin/bash", "-c", "airflow db init && airflow webserver && airflow users create --username admin --firstname Admin --lastname User --email admin@example.com --role Admin --password admin"]
@@ -49,9 +49,9 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: "my_shared_secret_key"
       DATABASE_URL: "postgresql://admin_user:admin_password@postgres:5432/staging_db"
     volumes:
-#      - ./dags:/opt/airflow/dags
+      - ./dags:/opt/airflow/dags
       - ./helpers:/opt/airflow/helpers
-#      - ./utils:/opt/airflow/utils
+      - ./utils:/opt/airflow/utils
       - ./dbt:/opt/airflow/dbt
 
     entrypoint: ["/bin/bash", "-c", "airflow scheduler"]

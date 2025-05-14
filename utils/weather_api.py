@@ -1,6 +1,6 @@
 import requests
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -34,7 +34,7 @@ def get_weather(city_name: str) -> dict:
             "main": data.get("weather", [{}])[0].get("main"),
             "description": data.get("weather", [{}])[0].get("description"),
             "temperature": round(data.get("main", {}).get("temp", 0)),  # Default to 0 if key is missing
-            "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": get_datetime_now_rounded(),
         }
         return weather_info
 
@@ -44,3 +44,9 @@ def get_weather(city_name: str) -> dict:
     except (KeyError, IndexError, TypeError) as e:
         logging.error(f"Error processing data: {e}")
         return {"error": f"Error processing data: {e}"}
+
+def get_datetime_now_rounded() -> str:
+    """Returns the current timestamp rounded up to the next second in ISO format."""
+    now = datetime.now()
+    rounded_up = now + timedelta(seconds=1) if now.microsecond > 0 else now
+    return rounded_up.replace(microsecond=0).isoformat()

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-scheduler
+  template:
+    metadata:
+      labels:
+        app: airflow-scheduler
+    spec:
+      containers:
+        - name: airflow-scheduler
+          image: airflow-webserver:local
+          envFrom:
+            - configMapRef:
+                name: airflow-config
+          command: ["/bin/bash", "-c", "airflow scheduler"]
+          ports:
+            - containerPort: 8793
+          volumeMounts:
+            - name: helpers
+              mountPath: /opt/airflow/helpers
+            - name: dbt
+              mountPath: /opt/airflow/dbt
+            - name: utils
+              mountPath: /opt/airflow/utils
+            - name: dags
+              mountPath: /opt/airflow/dags
+            - name: logs
+              mountPath: /opt/airflow/logs
+      volumes:
+        - name: helpers
+          hostPath:
+            path: /data/helpers
+            type: Directory
+        - name: dbt
+          hostPath:
+            path: /data/dbt
+            type: Directory
+        - name: dags
+          hostPath:
+            path: /data/dags
+            type: Directory
+        - name: utils
+          hostPath:
+            path: /data/utils
+            type: Directory
+        - name: logs
+          emptyDir: {}

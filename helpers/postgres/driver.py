@@ -17,6 +17,17 @@ class PostgresDriver:
         try:
             connection = psycopg2.connect(DATABASE_URL)
             connection.autocommit = True  # Ensures changes are committed automatically
+
+            # must run
+            # kubectl port-forward svc/postgres 5432:5432
+
+            # connection = psycopg2.connect(
+            #     host="localhost",
+            #     port=5432,
+            #     dbname="staging_db",
+            #     user="admin_user",
+            #     password="admin_password"
+            # )
             logger.info("✅ Connection to the database successful")
             return connection
         except Exception as e:
@@ -57,7 +68,6 @@ class PostgresDriver:
                     cursor.execute(query, values)  # Using parameterized query
                 else:
                     cursor.execute(query)
-
                 logger.info(f"✅ Query executed successfully: {query}")
         except Exception as e:
             logger.error(f"❌ Error executing query: {e}")
