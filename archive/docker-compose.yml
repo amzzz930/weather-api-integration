@@ -14,8 +14,8 @@ services:
   airflow-webserver:
     # Build from our custom Dockerfile that installs requirements.txt
     build:
-      context: .
-      dockerfile: Dockerfile-airflow-webserver
+      context: ..
+      dockerfile: ../Dockerfile-airflow-webserver
     container_name: airflow_webserver
     restart: always
     depends_on:
