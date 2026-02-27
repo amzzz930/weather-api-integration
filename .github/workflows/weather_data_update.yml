@@ -5,8 +5,6 @@ on:
     # Run every 5 minutes
     # This is the minimum interval that GitHub Actions reliably supports
     - cron: '*/5 * * * *'
-  # Allow manual trigger
-  workflow_dispatch:
 
 jobs:
   update-weather-data:
