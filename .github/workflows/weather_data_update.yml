@@ -2,9 +2,8 @@ name: Update Weather Data
 
 on:
   schedule:
-    # Run every 5 minutes
-    # This is the minimum interval that GitHub Actions reliably supports
-    - cron: '*/5 * * * *'
+    # Run every 30 mins
+    - cron: "*/30 * * * *"
 
 jobs:
   update-weather-data:
