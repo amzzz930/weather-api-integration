@@ -2,10 +2,9 @@ name: Update Weather Data
 
 on:
   schedule:
-    # Run every minute
-    # Note: GitHub Actions has a minimum interval of 5 minutes for scheduled workflows
-    # This cron expression will run at the minimum allowed frequency (not exactly every minute)
-    - cron: '* * * * *'
+    # Run every 5 minutes
+    # This is the minimum interval that GitHub Actions reliably supports
+    - cron: '*/5 * * * *'
   # Allow manual trigger
   workflow_dispatch:
 
