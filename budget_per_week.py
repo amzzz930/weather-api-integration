@@ -1,5 +1,5 @@
 """
-Budget Per Week Tracker
+Track and manage weekly budgets.
 
 This module provides a command-line application for tracking and managing weekly budgets.
 It allows users to monitor spending against a fixed weekly budget and track additional expenses
@@ -24,11 +24,10 @@ Dependencies:
     - prompt_toolkit: For enhanced input prompts
 """
 
-from datetime import datetime, timedelta, date
+from datetime import datetime
 import json
 import tempfile
 import os
-import calendar
 from simple_term_menu import TerminalMenu
 from prompt_toolkit import prompt
 
@@ -37,7 +36,7 @@ BUDGET_PER_WEEK = 200
 
 class BudgetPerWeek:
     """
-    A class that manages and tracks weekly budget spending.
+    Manage and track weekly budget spending.
 
     This class provides methods to track spending against a weekly budget, calculate remaining
     budget, and manage separate tracking for different types of costs. It offers functionality
@@ -76,14 +75,15 @@ class BudgetPerWeek:
         self.records_other = self.load_records(other_costs=True)
 
     def get_records(self, other_costs=False):
-        """Helper method to get the appropriate records based on other_costs parameter."""
+        """Get the appropriate records based on other_costs parameter."""
         return self.records_other if other_costs else self.records
 
     def get_file_path(self, other_costs=False):
-        """Helper method to get the appropriate file path based on other_costs parameter."""
+        """Get the appropriate file path based on other_costs parameter."""
         return self.file_path_other_costs if other_costs else self.file_path
 
     def load_records(self, other_costs=False) -> dict:
+        """Load budget records from the appropriate JSON file based on the other_costs parameter."""
         filename = self.get_file_path(other_costs)
         try:
             with open(filename, "r") as f:
@@ -92,7 +92,7 @@ class BudgetPerWeek:
             return {}
 
     def save_records(self, other_costs=False):
-        """Atomic save to avoid corrupting JSON if something crashes mid-write"""
+        """Save records atomically to avoid corrupting JSON if something crashes mid-write."""
         fd, temp_path = tempfile.mkstemp()
         records = self.get_records(other_costs)
         file_path = self.get_file_path(other_costs)
@@ -107,7 +107,6 @@ class BudgetPerWeek:
 
         If week is not provided, uses current week.
         """
-
         week = str(week or self.current_week)
         records = self.get_records(other_costs)
 
@@ -125,6 +124,7 @@ class BudgetPerWeek:
     def get_total_for_day(
         self, day: str = None, week: int = None, other_costs=False
     ) -> int:
+        """Calculate the total spending for a specified day within a week."""
         week_key = str(week or self.current_week)
         day_key = (day or self.current_day).lower()
         records = self.get_records(other_costs)
@@ -135,6 +135,7 @@ class BudgetPerWeek:
         return round(total, 2)
 
     def get_remaining_for_week(self, week: int = None) -> int:
+        """Calculate the remaining budget for the specified week."""
         return round(self.budget_per_week - self.get_total_for_week(week), 2)
 
     def add_cost(
@@ -196,11 +197,13 @@ class BudgetPerWeek:
 
         if other_costs:
             print(
-                f"your total other spend for today is {self.get_total_for_day(other_costs=True)}, your total other spend for the week is {self.get_total_for_week(other_costs=True)}"
+                f"your total other spend for today is {self.get_total_for_day(other_costs=True)}, "
+                f"your total other spend for the week is {self.get_total_for_week(other_costs=True)}"
             )
         else:
             print(
-                f"your total spend for today is {self.get_total_for_day()}, your remaining spend for the week is {self.get_remaining_for_week()}"
+                f"your total spend for today is {self.get_total_for_day()}, "
+                f"your remaining spend for the week is {self.get_remaining_for_week()}"
             )
 
         return self.get_records(other_costs)
@@ -213,7 +216,9 @@ class BudgetPerWeek:
         or other costs (not affecting weekly budget).
         """
         print(
-            f"your current weekly budget is £{self.budget_per_week}, you have £{self.get_remaining_for_week()} left. There are {7 - datetime.now().isoweekday()} day(s) left"
+            f"your current weekly budget is £{self.budget_per_week}, "
+            f"you have £{self.get_remaining_for_week()} left. "
+            f"There are {7 - datetime.now().isoweekday()} day(s) left"
         )
 
         # First level menu - select cost type
@@ -239,7 +244,7 @@ class BudgetPerWeek:
             # Second level menu - operations for the selected cost type
             options = [
                 f"Add a {cost_type_label.lower().rstrip('s')}",
-                f"Show remaining budget"
+                "Show remaining budget"
                 if not other_costs
                 else f"Show remaining budget (not applicable for {cost_type_label.lower()})",
                 f"Show total {cost_type_label.lower()} this week",
