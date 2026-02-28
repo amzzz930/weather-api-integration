@@ -31,6 +31,8 @@ jobs:
 
       # Run our script to generate the weather data CSV
       - name: Run weather data script
+        env:
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
         run: |
           python utils/automated_script/run.py
 

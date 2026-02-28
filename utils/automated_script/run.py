@@ -16,7 +16,8 @@ except ModuleNotFoundError:
 
 # URL and API key
 URL = "https://api.openweathermap.org/data/2.5/weather"
-API_KEY = "c4cd0778e6cbc97263e6774108de2adf"
+# Get API key from environment variable or use a default for local development
+API_KEY = os.environ.get("OPENWEATHER_API_KEY")
 CITY_NAMES = ["london", "sylhet", "paris", "tokyo", "madrid"]
 
 
