@@ -152,7 +152,7 @@ class BudgetPerWeek:
         total = sum(item.get("cost", 0) for item in day_records)
         return round(total, 2)
 
-    def get_remaining_for_week(self, week: int = None) -> int:
+    def get_remaining_for_week(self) -> int:
         """Calculate the remaining budget for the specified week."""
         return round(self.budget_per_week - self.get_total_for_week(), 2)
 
@@ -207,11 +207,10 @@ class BudgetPerWeek:
 
         current_day_records = current_weeks_records[self.current_day]
 
-        if cost_is_debt:
-            # cost_price should always be negative is cost_is_debt
-            # if user inputs negative value in tool, it does not do * -1 transformation
-            if cost_price > 0:
-                cost_price = cost_price * -1
+        # Ensure sign of cost_price matches cost_is_debt:
+        # - debts must be stored as negative values
+        # - non-debts must be stored as positive values
+        cost_price = -abs(cost_price) if cost_is_debt else abs(cost_price)
 
         current_day_records.append({"name": cost_name, "cost": cost_price})
 
