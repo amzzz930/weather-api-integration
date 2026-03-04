@@ -66,8 +66,8 @@ class BudgetPerWeek:
         set to default values.
         """
         self.current_week = str(datetime.now().isocalendar().week)
-        self.current_day = datetime.now().strftime("%A")
-        self.current_month = datetime.now().strftime("%B")
+        self.current_day = datetime.now().strftime("%A").lower()
+        self.current_month = datetime.now().strftime("%B").lower()
         self.budget_per_week = BUDGET_PER_WEEK
         self.file_path = "budget_per_week.json"
         self.file_path_other_costs = "budget_per_week_other_costs.json"
@@ -101,60 +101,78 @@ class BudgetPerWeek:
 
         os.replace(temp_path, file_path)
 
-    def get_total_for_week(self, week: int = None, other_costs=False) -> int:
-        """
-        Calculate the total spend for a given week.
-
-        If week is not provided, uses current week.
-        """
-        week = str(week or self.current_week)
+    def get_total_for_month(self, other_costs=False):
+        """Calculate the total spend for current month."""
         records = self.get_records(other_costs)
 
-        if week not in records:
+        if self.current_month not in records:
+            return 0
+
+        current_month_records = records[self.current_month]
+
+        total = 0
+
+        for week_no in current_month_records:
+            week_records = current_month_records[week_no]
+            for day in week_records.values():
+                for cost in day:
+                    total += cost["cost"]
+
+        return round(total, 2)
+
+    def get_total_for_week(self, week: str = None, other_costs: bool = False) -> int:
+        """Calculate the total spend for current week."""
+        records = self.get_records(other_costs)
+
+        if self.current_month not in records:
+            return 0
+
+        current_month_records = records[self.current_month]
+
+        week = str(week) if week else self.current_week
+
+        if week not in current_month_records:
             return 0
 
         total = 0
 
-        for day in records[week].values():
+        for day in current_month_records[week].values():
             for cost in day:
                 total += cost["cost"]
 
         return round(total, 2)
 
-    def get_total_for_day(
-        self, day: str = None, week: int = None, other_costs=False
-    ) -> int:
+    def get_total_for_day(self, other_costs=False) -> int:
         """Calculate the total spending for a specified day within a week."""
-        week_key = str(week or self.current_week)
-        day_key = (day or self.current_day).lower()
         records = self.get_records(other_costs)
 
-        week_data = records.get(week_key, {})
-        day_records = week_data.get(day_key, [])
+        month_data = records.get(self.current_month, {})
+        week_data = month_data.get(self.current_week, {})
+        day_records = week_data.get(self.current_day, [])
         total = sum(item.get("cost", 0) for item in day_records)
         return round(total, 2)
 
-    def get_remaining_for_week(self, week: int = None) -> int:
+    def get_remaining_for_week(self) -> int:
         """Calculate the remaining budget for the specified week."""
-        return round(self.budget_per_week - self.get_total_for_week(week), 2)
+        return round(self.budget_per_week - self.get_total_for_week(), 2)
 
     def add_cost(
         self,
         cost_name: str,
         cost_price: float,
-        manual_select_day: bool = False,
-        manual_day: str = None,
         other_costs: bool = False,
+        cost_is_debt: bool = False,
     ):
         """
         Add a cost entry for the current week and day.
 
         Parameters:
             cost_name (str): The name of the cost.
-            cost_price (float): The value of the cost.
+            cost_price (Any): The value of the cost. Should be a float
             manual_select_day (bool): If True, use manual_day instead of today's day.
             manual_day (str): Day name to assign the cost to (e.g. "Monday").
             other_costs (bool): If True, add to other costs that don't affect weekly budget.
+            cost_is_debt (bool): If True, add a debt cost (money you was owed). These are - values
 
         Example:
             budget.add_cost("Coffee", 4)
@@ -174,26 +192,34 @@ class BudgetPerWeek:
         """
         records = self.get_records(other_costs)
 
-        if self.current_week not in records:
-            records[self.current_week] = {}
+        if self.current_month not in records:
+            records[self.current_month] = {}
 
-        current_weeks_records = records[self.current_week]
+        current_month_records = records[self.current_month]
 
-        if manual_select_day:
-            current_day = manual_day
-        else:
-            current_day = self.current_day
+        if self.current_week not in current_month_records:
+            current_month_records[self.current_week] = {}
 
-        current_day = current_day.lower()
+        current_weeks_records = current_month_records[self.current_week]
 
-        if current_day not in current_weeks_records:
-            current_weeks_records[current_day] = []
+        if self.current_day not in current_weeks_records:
+            current_weeks_records[self.current_day] = []
 
-        current_day_records = current_weeks_records[current_day]
+        current_day_records = current_weeks_records[self.current_day]
+
+        # Ensure sign of cost_price matches cost_is_debt:
+        # - debts must be stored as negative values
+        # - non-debts must be stored as positive values
+        cost_price = -abs(cost_price) if cost_is_debt else abs(cost_price)
 
         current_day_records.append({"name": cost_name, "cost": cost_price})
 
         self.save_records(other_costs=other_costs)
+
+        print(
+            f"{'debt' if cost_is_debt else 'cost'} '{cost_name}' -> £{cost_price} "
+            f"added to {self.current_month}/{self.current_week}/{self.current_day} records"
+        )
 
         if other_costs:
             print(
@@ -244,10 +270,12 @@ class BudgetPerWeek:
             # Second level menu - operations for the selected cost type
             options = [
                 f"Add a {cost_type_label.lower().rstrip('s')}",
+                "Add a debt (this is money you are owed)",
                 "Show remaining budget"
                 if not other_costs
                 else f"Show remaining budget (not applicable for {cost_type_label.lower()})",
                 f"Show total {cost_type_label.lower()} this week",
+                f"Show total {cost_type_label.lower()} this month",
                 f"Show all {cost_type_label.lower()} records",
                 "Back to cost type selection",
             ]
@@ -255,37 +283,49 @@ class BudgetPerWeek:
             menu = TerminalMenu(options)
 
             while True:
+                cost_type_label = "Other costs" if other_costs else "Main costs"
                 print(f"\nCurrently tracking: {cost_type_label}")
                 choice = menu.show()
 
-                if choice == 0:  # Add cost
-                    name = prompt(f"{cost_type_label.rstrip('s')} name: ")
+                if choice in (0, 1):  # Add cost or a debt
+                    cost_type_label = (
+                        cost_type_label.rstrip("s") if choice == 0 else "debt"
+                    )
+                    name = prompt(f"{cost_type_label} name: ")
 
                     while True:
-                        price_str = prompt(f"{cost_type_label.rstrip('s')} price: ")
+                        price_str = prompt(f"{cost_type_label} price: ")
                         try:
                             price = float(price_str)
                             break
                         except ValueError:
                             print("Please enter a valid number")
 
-                    self.add_cost(name, price, other_costs=other_costs)
+                    self.add_cost(
+                        name, price, other_costs=other_costs
+                    ) if choice == 0 else self.add_cost(
+                        name, price, other_costs=other_costs, cost_is_debt=True
+                    )
 
-                elif choice == 1:  # Show remaining budget
+                elif choice == 2:  # Show remaining budget
                     if not other_costs:
                         print(f"Remaining budget: £{self.get_remaining_for_week()}")
                     else:
                         print("Remaining budget not applicable for other costs.")
 
-                elif choice == 2:  # Show total
+                elif choice == 3:  # Show total week
                     total = self.get_total_for_week(other_costs=other_costs)
                     print(f"Total {cost_type_label.lower()} this week: £{total}")
 
-                elif choice == 3:  # Show records
+                elif choice == 4:  # Show total month
+                    total = self.get_total_for_month(other_costs=other_costs)
+                    print(f"Total {cost_type_label.lower()} this month: £{total}")
+
+                elif choice == 5:  # Show records
                     records = self.get_records(other_costs)
                     print(json.dumps(records, indent=2))
 
-                elif choice == 4:  # Back
+                elif choice == 6:  # Back
                     break
 
 
