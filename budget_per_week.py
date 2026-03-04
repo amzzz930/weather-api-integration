@@ -284,6 +284,7 @@ class BudgetPerWeek:
             menu = TerminalMenu(options)
 
             while True:
+                cost_type_label = "Other costs" if other_costs else "Main costs"
                 print(f"\nCurrently tracking: {cost_type_label}")
                 choice = menu.show()
 
