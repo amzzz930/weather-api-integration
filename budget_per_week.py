@@ -24,7 +24,7 @@ Dependencies:
     - prompt_toolkit: For enhanced input prompts
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import tempfile
 import os
@@ -66,6 +66,7 @@ class BudgetPerWeek:
         set to default values.
         """
         self.current_week = str(datetime.now().isocalendar().week)
+        self.last_week = str((datetime.now() - timedelta(days=7)).isocalendar().week)
         self.current_day = datetime.now().strftime("%A").lower()
         self.current_month = datetime.now().strftime("%B").lower()
         self.budget_per_week = BUDGET_PER_WEEK
@@ -73,6 +74,8 @@ class BudgetPerWeek:
         self.file_path_other_costs = "budget_per_week_other_costs.json"
         self.records = self.load_records()
         self.records_other = self.load_records(other_costs=True)
+        self.total_last_week = self.get_total_for_last_week()
+        self.carried_over = BUDGET_PER_WEEK - self.total_last_week
 
     def get_records(self, other_costs=False):
         """Get the appropriate records based on other_costs parameter."""
@@ -120,7 +123,42 @@ class BudgetPerWeek:
 
         return round(total, 2)
 
-    def get_total_for_week(self, week: str = None, other_costs: bool = False) -> int:
+    @staticmethod
+    def get_total_for_week(week_records: dict):
+        """
+        Calculate the total cost for all records in a week.
+
+        Iterates through each day in the provided dictionary and sums the
+        "cost" values from each record. Returns the total rounded to 2
+        decimal places.
+
+        Example:
+            week_records = {
+                "monday": [
+                    {"name": "fusion", "cost": 10.5},
+                    {"name": "chicos", "cost": 12}
+                ],
+                "tuesday": [
+                    {"name": "kfc", "cost": 10}
+                ],
+                "wednesday": []
+            }
+
+        :param week_records: Dictionary where each key is a day of the week and
+                             the value is a list of records containing a "cost" key.
+        :return: Total weekly cost as a float rounded to 2 decimal places.
+        """
+        total = 0
+
+        for day in week_records.values():
+            for cost in day:
+                total += cost["cost"]
+
+        return round(total, 2)
+
+    def get_total_for_this_week(
+        self, week: str = None, other_costs: bool = False
+    ) -> float:
         """Calculate the total spend for current week."""
         records = self.get_records(other_costs)
 
@@ -134,13 +172,26 @@ class BudgetPerWeek:
         if week not in current_month_records:
             return 0
 
-        total = 0
+        current_week_records = current_month_records[week]
 
-        for day in current_month_records[week].values():
-            for cost in day:
-                total += cost["cost"]
+        total_current_week = self.get_total_for_week(current_week_records)
 
-        return round(total, 2)
+        return total_current_week
+
+    def get_total_for_last_week(self) -> float:
+        """Calculate the total spend for last week."""
+        last_week_records = {}
+        for month in self.records:
+            if self.last_week in self.records[month]:
+                last_week_records = self.records[month][self.last_week]
+                pass
+
+        if not last_week_records:
+            raise ValueError(f"No records for last week {self.last_week}")
+
+        total_last_week = self.get_total_for_week(last_week_records)
+
+        return total_last_week
 
     def get_total_for_day(self, other_costs=False) -> int:
         """Calculate the total spending for a specified day within a week."""
@@ -152,9 +203,18 @@ class BudgetPerWeek:
         total = sum(item.get("cost", 0) for item in day_records)
         return round(total, 2)
 
-    def get_remaining_for_week(self) -> int:
-        """Calculate the remaining budget for the specified week."""
-        return round(self.budget_per_week - self.get_total_for_week(), 2)
+    def get_remaining_for_week(self) -> float:
+        """Calculate the remaining budget for the current week."""
+        remainder_for_current_week = (
+            self.budget_per_week - self.get_total_for_this_week()
+        )
+
+        if self.carried_over > 0:
+            print(f"£{remainder_for_current_week} if we exclude carried over")
+            remainder_for_current_week += self.carried_over
+            print(f"£{self.carried_over} is carried over from last week")
+
+        return round(remainder_for_current_week, 2)
 
     def add_cost(
         self,
@@ -224,7 +284,7 @@ class BudgetPerWeek:
         if other_costs:
             print(
                 f"your total other spend for today is {self.get_total_for_day(other_costs=True)}, "
-                f"your total other spend for the week is {self.get_total_for_week(other_costs=True)}"
+                f"your total other spend for the week is {self.get_total_for_this_week(other_costs=True)}"
             )
         else:
             print(
@@ -309,12 +369,14 @@ class BudgetPerWeek:
 
                 elif choice == 2:  # Show remaining budget
                     if not other_costs:
-                        print(f"Remaining budget: £{self.get_remaining_for_week()}")
+                        print(
+                            f"Total Remaining budget: £{self.get_remaining_for_week()}"
+                        )
                     else:
                         print("Remaining budget not applicable for other costs.")
 
                 elif choice == 3:  # Show total week
-                    total = self.get_total_for_week(other_costs=other_costs)
+                    total = self.get_total_for_this_week(other_costs=other_costs)
                     print(f"Total {cost_type_label.lower()} this week: £{total}")
 
                 elif choice == 4:  # Show total month
