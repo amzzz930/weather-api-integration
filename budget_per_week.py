@@ -210,7 +210,7 @@ class BudgetPerWeek:
         )
 
         if self.carried_over > 0:
-            print(f"£{remainder_for_current_week} if we exclude carried over")
+            print(f"£{round(remainder_for_current_week, 2)} if we exclude carried over")
             remainder_for_current_week += self.carried_over
             print(f"£{self.carried_over} is carried over from last week")
 
