@@ -1,0 +1,28 @@
+name: Run Pre-Commit Hooks
+
+on:
+  pull_request:  # Run on all pull requests regardless of target branch
+  push:  # Run on all branch pushes
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'  # Adjust to your Python version
+
+      - name: Install dependencies
+        run: |
+          pip install pre-commit
+          pip install black flake8
+
+      - name: Run Pre-Commit Hooks
+        run: |
+          pre-commit install  # Install the hooks in the repository
+          pre-commit run --all-files  # Run all the pre-commit hooks
